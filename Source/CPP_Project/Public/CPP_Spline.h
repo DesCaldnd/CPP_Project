@@ -69,6 +69,9 @@ public:
 	bool UseTangent = true;
 
 	UPROPERTY(EditAnywhere, Category = "Base")
+	bool IsClosed;
+
+	UPROPERTY(EditAnywhere, Category = "Base")
 	bool Build = true;
 
 	UPROPERTY(EditAnywhere, Category = "Base")

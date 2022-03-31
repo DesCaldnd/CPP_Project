@@ -35,6 +35,7 @@ void ACPP_Spline::Tick(float DeltaTime)
 
 void ACPP_Spline::Start()
 {
+	Base_Spline->SetClosedLoop(IsClosed);
 	Scale = FMath::Abs(Scale);
 	if (Scale == 0)
 		Scale = 1;
@@ -44,6 +45,8 @@ void ACPP_Spline::Start()
 
 void ACPP_Spline::FBuild_Spline()
 {
+	UE_LOG(LogTemp, Display, TEXT("%s"), *Base_Spline->GetTangentAtSplinePoint(1, ESplineCoordinateSpace::World).ToString());
+
 	milliseconds StartMs = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 	
 	CurrentDistance = 0;
@@ -53,6 +56,9 @@ void ACPP_Spline::FBuild_Spline()
 	
 	SplineLength = Base_Spline->GetSplineLength();
 	MeshSize = BoundsSize();
+	FVector FirstPos, FirstTangent;
+
+	USplineMeshComponent* SplineMesh = nullptr;
 
 	while (SplineLength > MeshSize && MeshSize > 0)
 	{
@@ -71,10 +77,16 @@ void ACPP_Spline::FBuild_Spline()
 		FVector StartTangent = Base_Spline->GetTangentAtDistanceAlongSpline(CurrentDistance, ESplineCoordinateSpace::Local).GetClampedToSize(MeshSize, MeshSize);
 		FVector EndTangent = Base_Spline->GetTangentAtDistanceAlongSpline(NextDistance, ESplineCoordinateSpace::Local).GetClampedToSize(MeshSize, MeshSize);
 
-		USplineMeshComponent* SplineMesh = NewObject<USplineMeshComponent>(this, USplineMeshComponent::StaticClass());
+		SplineMesh = NewObject<USplineMeshComponent>(this, USplineMeshComponent::StaticClass());
 
 		if (UseFeatures)
 			Features(SplineMesh, StartPos, StartTangent, EndPos, EndTangent);
+
+		if (IsClosed && ElementsNumber == 1)
+		{
+			FirstPos = StartPos;
+			FirstTangent = StartTangent;
+		}
 
 		SplineMesh->SetStaticMesh(Mesh[Index]);
 		SplineMesh->SetMobility(EComponentMobility::Movable);
@@ -96,6 +108,11 @@ void ACPP_Spline::FBuild_Spline()
 		SplineLength = SplineLength - (MeshSize + FPadding);
 		CurrentDistance = CurrentDistance + MeshSize + FPadding;
 		MeshSize = BoundsSize();
+	}
+	if (IsClosed)
+	{
+		SplineMesh->SetEndPosition(FirstPos);
+		SplineMesh->SetEndTangent(FirstTangent);
 	}
 	if (ShowStats)
 	{
@@ -158,7 +175,7 @@ float ACPP_Spline::Attach(const FVector& StartPos)
 	{
 		OutDistance = Out.Location.Z - StartPos.Z;
 		if (ShowStats)
-			DrawDebugLine(GetWorld(), StartPos, SecondPos, FColor::Red, false, 3.0f, 0, 4);
+			DrawDebugLine(GetWorld(), StartPos, Out.Location, FColor::Red, false, 3.0f, 0, 4);
 	}
 	return OutDistance;
 }
@@ -170,10 +187,12 @@ void ACPP_Spline::ResetSpline()
 	if (Base_Spline->GetNumberOfSplinePoints() >= 1)
 	{
 		Base_Spline->SetLocationAtSplinePoint(0, FVector::ZeroVector, ESplineCoordinateSpace::Local);
+		Base_Spline->SetTangentAtSplinePoint(0, FVector(200, 0, 0), ESplineCoordinateSpace::World);
 	}
 	if (Base_Spline->GetNumberOfSplinePoints() >= 2)
 	{
 		Base_Spline->SetLocationAtSplinePoint(1, FVector(200, 0, 0), ESplineCoordinateSpace::Local);
+		Base_Spline->SetTangentAtSplinePoint(1, FVector(200, 0, 0), ESplineCoordinateSpace::World);
 	}
 	RerunConstructionScripts();
 }
