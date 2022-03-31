@@ -1,35 +1,74 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/SplineComponent.h"
+#include "Components/SplineMeshComponent.h"
+#include "Components/BillboardComponent.h"
+#include "Runtime/Engine/Public/EngineGlobals.h"
 #include "CPP_Spline.generated.h"
 
-UCLASS()
+
+UCLASS(ClassGroup=(Custom), meta = (BlueprintSpawnableComponent))
 class CPP_PROJECT_API ACPP_Spline : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	ACPP_Spline();
 
-	UPROPERTY(EditAnywhere)
+	UFUNCTION(CallInEditor, Category = "Base")
+	void ResetSpline();
+
+	UPROPERTY()
 	USplineComponent* Base_Spline;
 
 	UFUNCTION(BlueprintCallable)
-	void FAsync_Build_Spline();
+	void Start();
 
 	void FBuild_Spline();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base")
+	TArray<UStaticMesh*> Mesh;
+	
+	UPROPERTY(EditAnywhere, Category = "Base")
+	TEnumAsByte<ESplineMeshAxis::Type> InForwardAxis = ESplineMeshAxis::X;
+
+	UPROPERTY(EditAnywhere, Category = "Base")
+	TEnumAsByte<ECollisionEnabled::Type> Collision = ECollisionEnabled::NoCollision;
+
+	UPROPERTY(EditAnywhere, Category = "Base")
+	bool UseTangent = true;
+
+	UPROPERTY(EditAnywhere, Category = "Base")
+	bool Build = true;
+
+	UPROPERTY()
+	UBillboardComponent* BillboardComp;
+
+	UPROPERTY(EditAnywhere, Category = "Feature")
+	FVector WorldOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category = "Feature")
+	bool AttachToFloor = false;
+
+	UPROPERTY(EditAnywhere, Category = "Feature")
+	bool ShowStats = false;
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+private:
+
+	int32 Index;
+	float MeshSize;
+	float SplineLength;
+	float CurrentDistance = 0;
+	float NextDistance = 0;
+	float BoundsSize();
+	float Attach(const FVector& StartPos);
+
 };
+
